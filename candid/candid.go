@@ -152,7 +152,7 @@ func valueToString(typ idl.Type, value any) (string, error) {
 		}
 		return fmt.Sprintf("variant { %s }", s), nil
 	case *idl.PrincipalType:
-		p, _ := value.(principal.Principal)
+		p, _ := value.(*principal.Principal)
 		return fmt.Sprintf("principal %q", p), nil
 	default:
 		panic(fmt.Sprintf("%s, %v", typ, value))

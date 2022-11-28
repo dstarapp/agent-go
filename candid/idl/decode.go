@@ -83,13 +83,13 @@ func Decode(bs []byte) ([]Type, []any, error) {
 					if err != nil {
 						return nil, nil, err
 					}
-					v, err := getType(tid.Int64(), tds)
-					if err != nil {
-						return nil, nil, err
-					}
+					// v, err := getType(tid.Int64(), tds)
+					// if err != nil {
+					// 	return nil, nil, err
+					// }
 					fields = append(fields, FieldType{
 						Name: h.String(),
-						Type: v,
+						Idx:  tid.Int64(),
 					})
 				}
 				tds = append(tds, &RecordType{Fields: fields})
@@ -108,13 +108,13 @@ func Decode(bs []byte) ([]Type, []any, error) {
 					if err != nil {
 						return nil, nil, err
 					}
-					v, err := getType(tid.Int64(), tds)
-					if err != nil {
-						return nil, nil, err
-					}
+					// v, err := getType(tid.Int64(), tds)
+					// if err != nil {
+					// 	return nil, nil, err
+					// }
 					fields = append(fields, FieldType{
 						Name: h.String(),
-						Type: v,
+						Idx:  tid.Int64(),
 					})
 				}
 				tds = append(tds, &VariantType{Fields: fields})
@@ -208,6 +208,26 @@ func Decode(bs []byte) ([]Type, []any, error) {
 				tds = append(tds, &Service{
 					methods: methods,
 				})
+			}
+		}
+		for _, tb := range tds {
+			switch t := tb.(type) {
+			case *VariantType:
+				for i, _ := range t.Fields {
+					v, err := getType(t.Fields[i].Idx, tds)
+					if err != nil {
+						return nil, nil, err
+					}
+					t.Fields[i].Type = v
+				}
+			case *RecordType:
+				for i, _ := range t.Fields {
+					v, err := getType(t.Fields[i].Idx, tds)
+					if err != nil {
+						return nil, nil, err
+					}
+					t.Fields[i].Type = v
+				}
 			}
 		}
 	}

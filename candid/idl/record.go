@@ -39,7 +39,7 @@ func (r RecordType) AddTypeDefinition(tdt *TypeDefinitionTable) error {
 	if err != nil {
 		return err
 	}
-	l, err := leb128.EncodeUnsigned(big.NewInt(int64(len(r.Fields))))
+	lf, err := leb128.EncodeUnsigned(big.NewInt(int64(len(r.Fields))))
 	if err != nil {
 		return err
 	}
@@ -56,7 +56,7 @@ func (r RecordType) AddTypeDefinition(tdt *TypeDefinitionTable) error {
 		vs = append(vs, concat(l, t)...)
 	}
 
-	tdt.Add(r, concat(id, l, vs))
+	tdt.Add(r, concat(id, lf, vs))
 	return nil
 }
 

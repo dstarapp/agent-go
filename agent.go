@@ -66,7 +66,7 @@ func (a Agent) CallCandid(canisterID principal.Principal, methodName string, arg
 	if _, err := a.call(canisterID, data); err != nil {
 		return nil, nil, err
 	}
-	return a.poll(canisterID, *requestID, time.Second, time.Second*10)
+	return a.poll(canisterID, *requestID, time.Second, time.Second*60)
 }
 
 func (a Agent) GetCanisterControllers(canisterID principal.Principal) ([]principal.Principal, error) {
@@ -185,7 +185,7 @@ func (a Agent) poll(canisterID principal.Principal, requestID RequestID, delay, 
 				case "rejected":
 					code := certificate.Lookup(append(path, []byte("reject_code")), node)
 					reject_message := certificate.Lookup(append(path, []byte("reject_message")), node)
-					return nil, nil, fmt.Errorf("(%d) %s", binary.BigEndian.Uint64(code), string(reject_message))
+					return nil, nil, fmt.Errorf("(%d) %s", byte_to_uint64(code), string(reject_message))
 				case "replied":
 					path := [][]byte{[]byte("request_status"), requestID[:]}
 					reply := certificate.Lookup(append(path, []byte("reply")), node)
@@ -251,4 +251,18 @@ type AgentConfig struct {
 	Identity      *identity.Identity
 	IngressExpiry time.Duration
 	ClientConfig  *ClientConfig
+}
+
+func byte_to_uint64(data []byte) uint64 {
+	switch len(data) {
+	case 1:
+		return uint64(data[0])
+	case 2:
+		return uint64(binary.BigEndian.Uint16(data))
+	case 4:
+		return uint64(binary.BigEndian.Uint32(data))
+	case 8:
+		return uint64(binary.BigEndian.Uint64(data))
+	}
+	return 0
 }
