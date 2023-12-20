@@ -42,6 +42,7 @@ func Decode(bs []byte) ([]Type, []any, error) {
 		if err != nil {
 			return nil, nil, err
 		}
+		var tdids []int64
 		for i := 0; i < int(tdtl.Int64()); i++ {
 			tid, err := leb128.DecodeSigned(r)
 			if err != nil {
@@ -53,21 +54,23 @@ func Decode(bs []byte) ([]Type, []any, error) {
 				if err != nil {
 					return nil, nil, err
 				}
-				v, err := getType(tid.Int64(), tds)
-				if err != nil {
-					return nil, nil, err
-				}
-				tds = append(tds, &OptionalType{v})
+				// v, err := getType(tid.Int64(), tds)
+				// if err != nil {
+				// 	return nil, nil, err
+				// }
+				tdids = append(tdids, tid.Int64())
+				tds = append(tds, &OptionalType{})
 			case vecType:
 				tid, err := leb128.DecodeSigned(r)
 				if err != nil {
 					return nil, nil, err
 				}
-				v, err := getType(tid.Int64(), tds)
-				if err != nil {
-					return nil, nil, err
-				}
-				tds = append(tds, &VectorType{v})
+				// v, err := getType(tid.Int64(), tds)
+				// if err != nil {
+				// 	return nil, nil, err
+				// }
+				tdids = append(tdids, tid.Int64())
+				tds = append(tds, &VectorType{})
 			case recType:
 				l, err := leb128.DecodeUnsigned(r)
 				if err != nil {
@@ -92,6 +95,7 @@ func Decode(bs []byte) ([]Type, []any, error) {
 						Idx:  tid.Int64(),
 					})
 				}
+				tdids = append(tdids, 0)
 				tds = append(tds, &RecordType{Fields: fields})
 			case varType:
 				l, err := leb128.DecodeUnsigned(r)
@@ -117,6 +121,7 @@ func Decode(bs []byte) ([]Type, []any, error) {
 						Idx:  tid.Int64(),
 					})
 				}
+				tdids = append(tdids, 0)
 				tds = append(tds, &VariantType{Fields: fields})
 			case funcType:
 				la, err := leb128.DecodeUnsigned(r)
@@ -163,6 +168,7 @@ func Decode(bs []byte) ([]Type, []any, error) {
 				if len(ann) != 0 {
 					anns = append(anns, string(ann))
 				}
+				tdids = append(tdids, 0)
 				tds = append(tds, &FunctionType{
 					ArgTypes:    args,
 					RetTypes:    rets,
@@ -205,15 +211,28 @@ func Decode(bs []byte) ([]Type, []any, error) {
 						Func: f,
 					})
 				}
+				tdids = append(tdids, 0)
 				tds = append(tds, &Service{
 					methods: methods,
 				})
 			}
 		}
-		for _, tb := range tds {
+		for ti, tb := range tds {
 			switch t := tb.(type) {
+			case *OptionalType:
+				v, err := getType(tdids[ti], tds)
+				if err != nil {
+					return nil, nil, err
+				}
+				t.Type = v
+			case *VectorType:
+				v, err := getType(tdids[ti], tds)
+				if err != nil {
+					return nil, nil, err
+				}
+				t.Type = v
 			case *VariantType:
-				for i, _ := range t.Fields {
+				for i := range t.Fields {
 					v, err := getType(t.Fields[i].Idx, tds)
 					if err != nil {
 						return nil, nil, err
@@ -221,7 +240,7 @@ func Decode(bs []byte) ([]Type, []any, error) {
 					t.Fields[i].Type = v
 				}
 			case *RecordType:
-				for i, _ := range t.Fields {
+				for i := range t.Fields {
 					v, err := getType(t.Fields[i].Idx, tds)
 					if err != nil {
 						return nil, nil, err
